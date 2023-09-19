@@ -3,12 +3,47 @@
  */
 package supportbank;
 
+import supportbank.csv.CsvEntry;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 public class App {
     public String getGreeting() {
         return "Hello World!";
     }
 
+    public static List<CsvEntry> findCsvEntries(List<String> data) {
+        String[] currentLine;
+        List<CsvEntry> entries = new ArrayList<>();
+
+        for (String entry : data) {
+            currentLine = entry.split(",");
+
+            entries.add(new CsvEntry(
+               currentLine[0],
+               currentLine[1],
+               currentLine[2],
+               currentLine[3],
+               Double.valueOf(currentLine[4])
+            ));
+        }
+
+        return entries;
+    }
+
     public static void main(String[] args) {
-        System.out.println(new App().getGreeting());
+        System.out.println("Hello");
+
+        try {
+            List<String> fileData = Reader.readFileToList(new File("/home/mfuller/Desktop/Bootcamp/week1/SupportBank-Java/Transactions2014.csv"));
+            List<CsvEntry> entries = findCsvEntries(fileData);
+
+            System.out.println();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
