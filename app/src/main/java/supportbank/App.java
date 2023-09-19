@@ -6,9 +6,13 @@ package supportbank;
 import supportbank.csv.CsvEntry;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Hashtable;
 import java.util.List;
+import java.util.Scanner;
 
 public class App {
     public String getGreeting() {
@@ -18,8 +22,15 @@ public class App {
     public static List<CsvEntry> findCsvEntries(List<String> data) {
         String[] currentLine;
         List<CsvEntry> entries = new ArrayList<>();
+        // We need to discard the first line as it's just key data
+        data = data.stream().skip(1).toList();
+        int counter = 0;
 
         for (String entry : data) {
+            if (counter == 10) {
+                break;
+            }
+
             currentLine = entry.split(",");
 
             entries.add(new CsvEntry(
@@ -27,23 +38,63 @@ public class App {
                currentLine[1],
                currentLine[2],
                currentLine[3],
-               Double.valueOf(currentLine[4])
+//               Float.parseFloat(currentLine[4])
+               new BigDecimal(currentLine[4])
             ));
+
+            counter++;
         }
 
         return entries;
     }
 
     public static void main(String[] args) {
-        System.out.println("Hello");
-
         try {
+            // Read the file
             List<String> fileData = Reader.readFileToList(new File("/home/mfuller/Desktop/Bootcamp/week1/SupportBank-Java/Transactions2014.csv"));
             List<CsvEntry> entries = findCsvEntries(fileData);
+//            List<Account> accounts = new ArrayList<>();
+            Hashtable<String, Account> accounts = new Hashtable<>();
+            List<String> names = new ArrayList<>();
 
-            System.out.println();
+
+            for (CsvEntry entry : entries) {
+                // Create accounts
+                if (!names.contains(entry.getFrom())) { // If the user doesn't have an account
+//                    accounts.add(new Account(entry.getFrom()));
+                    accounts.put(entry.getFrom(), new Account(entry.getFrom()));
+                    names.add(entry.getFrom());
+                }
+
+                if (!names.contains(entry.getTo())) {
+                    accounts.put(entry.getTo(), new Account(entry.getTo()));
+                    names.add(entry.getTo());
+                }
+
+                // Create transactions
+                    // Update balance
+                accounts.get(entry.getFrom()).addToBalance(entry.getAmount());
+                accounts.get(entry.getTo()).removeToBalance(entry.getAmount());
+
+
+            }
+
+            System.out.println(findDifference(accounts));
+            // Read user input
+            // Return values to the user
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private static BigDecimal findDifference(Hashtable<String, Account> accounts) {
+        BigDecimal total = new BigDecimal(0);
+
+        for (Account account : accounts.values()) {
+//            total += account.getBalance();
+            total = total.add(account.getBalance());
+        }
+
+        return total;
     }
 }
