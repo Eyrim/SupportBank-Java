@@ -1,10 +1,18 @@
 package supportbank.csv;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.MarkerManager;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 
 public class CsvEntry {
+    private static final Logger log = LogManager.getLogger();
+
     // The date of the transaction
     private final String date;
     // The stated reason for the transaction
@@ -31,23 +39,38 @@ public class CsvEntry {
      */
     public static List<CsvEntry> createEntries(List<String> data) {
         String[] currentLine;
+        int lineNumber = 0;
         List<CsvEntry> entries = new ArrayList<>();
         // We need to discard the first line as it's just key data
         data = data.stream().skip(1).toList();
 
-        for (String entry : data) {
-            currentLine = entry.split(",");
+        try {
+            for (String entry : data) {
+                currentLine = entry.split(",");
 
-            entries.add(new CsvEntry(
-                    currentLine[0],
-                    currentLine[1],
-                    currentLine[2],
-                    currentLine[3],
-                    new BigDecimal(currentLine[4])
-            ));
+                entries.add(new CsvEntry(
+                        currentLine[0],
+                        currentLine[1].toLowerCase(Locale.ROOT),
+                        currentLine[2].toLowerCase(Locale.ROOT),
+                        currentLine[3].toLowerCase(Locale.ROOT),
+                        new BigDecimal(currentLine[4])
+                ));
+            }
+
+            lineNumber++;
+
+            return entries;
+        } catch (Exception e) {
+            log.fatal(MarkerManager.getMarker(e.getMessage()),
+                    String.format(
+                            "Error on line %x in file: %s",
+                            lineNumber,
+                            e.getMessage()
+                    ),
+                    e);
+
+            throw new RuntimeException(e);
         }
-
-        return entries;
     }
 
     public String getDate() { return this.date; }

@@ -3,6 +3,8 @@
  */
 package supportbank;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import supportbank.csv.CsvEntry;
 
 import java.io.File;
@@ -12,14 +14,15 @@ import java.util.*;
 
 public class App {
     private static final Hashtable<String, Account> accounts = new Hashtable<>();
-
+    private static final Logger log = LogManager.getLogger();
 
     public static void main(String[] args) {
         // Read the file
-        List<String> fileData = Reader.readFileToList(new File("/home/mfuller/Desktop/Bootcamp/week1/SupportBank-Java/Transactions2014.csv"));
+        List<String> fileData = Reader.readFileToList(new File("/home/mfuller/Desktop/Bootcamp/week1/SupportBank-Java/DodgyTransactions2015.csv"));
         List<CsvEntry> entries = CsvEntry.createEntries(fileData);
         BigDecimal pot = new BigDecimal(0);
 
+        // Iterate through the entries in the file
         for (CsvEntry entry : entries) {
             // If the user doesn't have an account yet
             if (!accounts.containsKey(entry.getFrom())) {
@@ -52,6 +55,10 @@ public class App {
      */
     private static void createAccount(String name) {
         accounts.put(name, new Account(name));
+        log.info(String.format(
+                "Created account for %s",
+                name
+        ));
     }
 
     /**
@@ -59,12 +66,13 @@ public class App {
      * @param accounts Hashtable of the accounts for output
      */
     private static void handleCommands(Hashtable<String, Account> accounts) {
-        String command;
+        String command = "";
         String[] splitCommand;
 
         try (Scanner sc = new Scanner(System.in)) {
-            while (!(command = sc.nextLine()).isEmpty()) {
-                System.out.println("Enter command:");
+            System.out.println("Enter command:");
+
+            while (!(command = sc.nextLine().toLowerCase()).isEmpty()) {
                 splitCommand = command.split(" ", 2);
 
                 if (splitCommand[0].equals("list")) {
@@ -74,9 +82,14 @@ public class App {
                         listAccount(accounts.get(splitCommand[1]));
                     }
                 }
+
+                System.out.println("Enter command:");
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            log.fatal(String.format(
+                    "Invalid command entered: %s",
+                    command
+            ));
         }
     }
 
@@ -88,6 +101,7 @@ public class App {
         for (Account account : accounts.values()) {
             // List every account to Standard Out
             listAccount(account);
+            log.info("Listing every account");
         }
     }
 
@@ -96,19 +110,42 @@ public class App {
      * @param account The account to list
      */
     private static void listAccount(Account account) {
-        if (account.getBalance().doubleValue() >= 0) {
-            System.out.printf(
-                    "%s is owed: %s%n",
-                    account.getName(),
-                    truncateDecimal(account.getBalance().abs(), 2)
-            );
-        } else {
-            System.out.printf(
-                    "%s owes: %s%n",
-                    account.getName(),
-                    truncateDecimal(account.getBalance().abs(), 2)
-            );
+        try {
+            if (account.getBalance().doubleValue() >= 0) {
+                System.out.printf(
+                        "%s is owed: %s%n",
+                        toTitleCase(account.getName()), //toTitleCase
+                        truncateDecimal(account.getBalance().abs(), 2)
+                );
+            } else {
+                System.out.printf(
+                        "%s owes: %s%n",
+                        toTitleCase(account.getName()),
+                        truncateDecimal(account.getBalance().abs(), 2)
+                );
+            }
+        } catch (Exception e) {
+            log.error("Account was null");
+            e.printStackTrace();
         }
+    }
+
+    /**
+     * Converts an input string to <code>Title Case</code>
+     * @param value The string to convert
+     * @return The input string converted to <code>Title Case</code>
+     */
+    private static String toTitleCase(String value) {
+        String[] words = value.split(" ");
+        StringBuilder newString = new StringBuilder();
+
+        for (String word : words) {
+            newString.append(Character.toUpperCase(word.charAt(0)));
+            newString.append(word, 1, word.length());
+            newString.append(" ");
+        }
+
+        return newString.toString();
     }
 
     /**
@@ -150,6 +187,11 @@ public class App {
             total = total.add(account.getBalance());
         }
 
+
+        log.info(String.format(
+                "Difference calculated, difference was %f",
+                total
+        ));
         return total;
     }
 }
