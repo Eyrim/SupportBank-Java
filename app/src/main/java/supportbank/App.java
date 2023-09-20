@@ -6,13 +6,9 @@ package supportbank;
 import supportbank.csv.CsvEntry;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Hashtable;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 
 public class App {
     public String getGreeting() {
@@ -24,13 +20,8 @@ public class App {
         List<CsvEntry> entries = new ArrayList<>();
         // We need to discard the first line as it's just key data
         data = data.stream().skip(1).toList();
-        int counter = 0;
 
         for (String entry : data) {
-            if (counter == 10) {
-                break;
-            }
-
             currentLine = entry.split(",");
 
             entries.add(new CsvEntry(
@@ -41,8 +32,6 @@ public class App {
 //               Float.parseFloat(currentLine[4])
                new BigDecimal(currentLine[4])
             ));
-
-            counter++;
         }
 
         return entries;
@@ -56,35 +45,98 @@ public class App {
 //            List<Account> accounts = new ArrayList<>();
             Hashtable<String, Account> accounts = new Hashtable<>();
             List<String> names = new ArrayList<>();
+            BigDecimal pot = new BigDecimal(0);
+            String[] command;
 
 
             for (CsvEntry entry : entries) {
-                // Create accounts
-                if (!names.contains(entry.getFrom())) { // If the user doesn't have an account
-//                    accounts.add(new Account(entry.getFrom()));
-                    accounts.put(entry.getFrom(), new Account(entry.getFrom()));
-                    names.add(entry.getFrom());
+                // If the user doesn't have an account yet
+                if (!accounts.containsKey(entry.getFrom())) {
+                    // Create account for everyone in from
+                    accounts.put(entry.getFrom(), new Account(entry.getFrom(), new BigDecimal(0)));
                 }
 
-                if (!names.contains(entry.getTo())) {
-                    accounts.put(entry.getTo(), new Account(entry.getTo()));
-                    names.add(entry.getTo());
+                // If the owed doesn't have an account yet
+                if (!accounts.containsKey(entry.getTo())) {
+                    // Create account for everyone in to
+                    accounts.put(entry.getTo(), new Account(entry.getTo(), new BigDecimal(0)));
                 }
 
-                // Create transactions
-                    // Update balance
+                // Modify the balance (add x to from, subtract x from to)
                 accounts.get(entry.getFrom()).addToBalance(entry.getAmount());
-                accounts.get(entry.getTo()).removeToBalance(entry.getAmount());
+                accounts.get(entry.getTo()).removeFromBalance(entry.getAmount());
 
-
+                pot = pot.add(entry.getAmount());
             }
 
-            System.out.println(findDifference(accounts));
-            // Read user input
-            // Return values to the user
+            System.out.println("POT: " + pot);
+            System.out.println("DIFF: " + findDifference(accounts));
+
+            try (Scanner sc = new Scanner(System.in)) {
+                System.out.println("Enter command:");
+                command = sc.nextLine().split(" ", 2);
+
+                if (command[0].equals("list")) {
+                    if (command[1].equals("all")) {
+                        listAccounts(accounts);
+                    } else {
+                        listAccount(accounts.get(command[1]));
+                    }
+                }
+            } catch (Exception e) {
+            }
+
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private static void listAccounts(Hashtable<String, Account> accounts) {
+        for (Account account : accounts.values()) {
+            if (account.getBalance().doubleValue() >= 0) {
+                System.out.printf(
+                        "%s is owed: %s%n",
+                        account.getName(),
+                        truncateDecimal(account.getBalance(), 2)
+                );
+            } else {
+                System.out.printf(
+                        "%s owes: %s%n",
+                        account.getName(),
+                        truncateDecimal(account.getBalance(), 2)
+                );
+            }
+        }
+    }
+
+    private static void listAccount(Account account) {
+        if (account.getBalance().doubleValue() >= 0) {
+            System.out.printf(
+                    "%s is owed: %s%n",
+                    account.getName(),
+                    truncateDecimal(account.getBalance(), 2)
+            );
+        } else {
+            System.out.printf(
+                    "%s owes: %s%n",
+                    account.getName(),
+                    truncateDecimal(account.getBalance(), 2)
+            );
+        }
+    }
+
+    /**
+     * <pre>Don't look inside this method please, it works
+     * <strong>
+     * This method assumes the value has numbers after the floating point
+     * </strong>
+     * </pre>
+     * @param value The value to be truncated
+     * @param places The number of decimal places
+     * @return A string representation of the number, truncated to have two decimal places
+     */
+    private static String truncateDecimal(BigDecimal value, int places) { // TODO: 20/09/2023 REFACTOR
+        return value.toString().split("\\.")[0] + "." + value.toString().split("\\.")[1].substring(0, places);
     }
 
     private static BigDecimal findDifference(Hashtable<String, Account> accounts) {

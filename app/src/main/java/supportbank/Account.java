@@ -1,14 +1,14 @@
 package supportbank;
 
 import java.math.BigDecimal;
-import java.util.List;
 
 public class Account {
     private final String name;
-    private BigDecimal balance = new BigDecimal(0);
+    private BigDecimal balance;
 
-    public Account(String name) {
+    public Account(String name, BigDecimal amount) {
         this.name = name;
+        this.balance = amount;
     }
 
     public String getName() {
@@ -20,14 +20,10 @@ public class Account {
     }
 
     public void addToBalance(BigDecimal amount) {
-//        this.balance += amount;
-//        this.balance = this.balance.add(amount);
-         BigDecimal d = this.balance.add(amount);
-         this.balance = d;
+        this.balance = this.balance.add(amount);
     }
 
-    public void removeToBalance(BigDecimal amount) {
-//        this.balance -= amount;
+    public void removeFromBalance(BigDecimal amount) {
         this.balance = this.balance.subtract(amount);
     }
 }
